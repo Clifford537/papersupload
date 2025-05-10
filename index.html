@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upload Past Paper</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📚 Past Paper Upload</h1>
+      <a href="view_papers.php" class="btn secondary">View Uploaded Papers</a>
+    </header>
+
+    <form id="uploadForm" method="POST" action="upload.php">
+      <div class="form-group">
+        <label for="year">Year</label>
+        <select name="year" id="year" required>
+          <option value="">Select year</option>
+          <option value="1">Year 1</option>
+          <option value="2">Year 2</option>
+          <option value="3">Year 3</option>
+          <option value="4">Year 4</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="course">Course</label>
+        <select name="course" id="course" required>
+          <option value="">Select course</option>
+          <option>Bachelor of Science in Computer Science</option>
+          <option>Bachelor of Science in Information Technology</option>
+          <option>Bachelor of Science in Information Communications and Technology Management</option>
+          <option>Bachelor of Science in Computer Technology</option>
+          <option>Bachelor of Science in Information Systems</option>
+          <option>Bachelor of Science in Diploma in IT</option>
+          <option>Diploma in Information Technology</option>
+          <option>Diploma in Information and Communication Technology (DICT)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" name="title" id="title" required placeholder="e.g. Operating Systems Paper" />
+      </div>
+
+      <div class="form-group">
+        <label for="code">Code</label>
+        <input type="text" name="code" id="code" required pattern="[A-Za-z0-9]{6}" placeholder="e.g. CSC201" title="Code must be exactly 6 letters or numbers" />
+      </div>
+
+      <div class="camera-box">
+        <video id="video" autoplay playsinline></video>
+        <button type="button" id="snap" class="btn">📸 Take Photo</button>
+      </div>
+
+      <div class="preview" id="preview"></div>
+      <div id="photos"></div>
+
+      <button type="submit" class="btn primary">⬆️ Upload Paper</button>
+    </form>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const snap = document.getElementById('snap');
+    const preview = document.getElementById('preview');
+    const photos = document.getElementById('photos');
+    let photoIndex = 0;
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => alert("Camera access denied: " + err));
+
+    snap.addEventListener('click', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+
+      const dataURL = canvas.toDataURL('image/png');
+      const block = document.createElement('div');
+      block.className = 'photo-block';
+      block.dataset.index = photoIndex;
+
+      const img = document.createElement('img');
+      img.src = dataURL;
+
+      const btn = document.createElement('button');
+      btn.textContent = '×';
+      btn.className = 'remove-btn';
+      btn.type = 'button';
+      btn.onclick = () => {
+        photos.querySelector(`[data-index="${block.dataset.index}"]`)?.remove();
+        block.remove();
+      };
+
+      block.appendChild(img);
+      block.appendChild(btn);
+      preview.appendChild(block);
+
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'images[]';
+      input.value = dataURL;
+      input.dataset.index = photoIndex;
+      photos.appendChild(input);
+
+      photoIndex++;
+    });
+
+    document.getElementById('uploadForm').addEventListener('submit', function (e) {
+      const imageInputs = document.querySelectorAll('input[name="images[]"]');
+      if (imageInputs.length === 0) {
+        alert('Please take at least one photo before uploading.');
+        e.preventDefault();
+      }
+    });
+  </script>
+</body>
+</html>
