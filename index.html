@@ -146,7 +146,7 @@
       <a href="view_papers.php" class="btn secondary">View Uploaded Papers</a>
     </header>
 
-    <form id="uploadForm" method="POST" action="upload">
+    <form id="uploadForm" method="POST" action="upload.php">
       <div class="form-group">
         <label for="year">Year</label>
         <select name="year" id="year" required>
@@ -159,19 +159,20 @@
       </div>
 
       <div class="form-group">
-        <label for="course">Course</label>
-        <select name="course" id="course" required>
-          <option value="">Select course</option>
-          <option>Bachelor of Science in Computer Science</option>
-          <option>Bachelor of Science in Information Technology</option>
-          <option>Bachelor of Science in ICT Management</option>
-          <option>Bachelor of Science in Computer Technology</option>
-          <option>Bachelor of Science in Information Systems</option>
-          <option>Diploma in IT</option>
-          <option>Diploma in Information Technology</option>
-          <option>Diploma in ICT (DICT)</option>
-        </select>
-      </div>
+  <label for="course">Course</label>
+  <select name="course" id="course" required>
+    <option value="">Select course</option>
+    <option value="Bachelor of Science in Computer Science">Bachelor of Science in Computer Science</option>
+    <option value="Bachelor of Science in Information Technology">Bachelor of Science in Information Technology</option>
+    <option value="Bachelor of Science in ICT Management">Bachelor of Science in ICT Management</option>
+    <option value="Bachelor of Science in Computer Technology">Bachelor of Science in Computer Technology</option>
+    <option value="Bachelor of Science in Information Systems">Bachelor of Science in Information Systems</option>
+    <option value="Diploma in IT">Diploma in IT</option>
+    <option value="Diploma in Information Technology">Diploma in Information Technology</option>
+    <option value="Diploma in ICT (DICT)">Diploma in ICT (DICT)</option>
+  </select>
+</div>
+
 
       <div class="form-group">
         <label for="title">Title</label>

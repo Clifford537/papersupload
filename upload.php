@@ -12,14 +12,13 @@ $allowedCourses = [
     "Diploma in Information and Communication Technology (DICT)"
 ];
 
-// Get and sanitize inputs
+// Sanitize and validate inputs
 $year   = $_POST['year'] ?? '';
 $course = $_POST['course'] ?? '';
-$title  = $_POST['title'] ?? '';
+$title  = trim($_POST['title'] ?? '');
 $code   = strtoupper(trim($_POST['code'] ?? ''));
 $images = $_POST['images'] ?? [];
 
-// Server-side validation
 if (!preg_match('/^[A-Za-z0-9]{6}$/', $code)) {
     die("❌ Error: Code must be exactly 6 alphanumeric characters.");
 }
@@ -33,34 +32,41 @@ if (empty($images)) {
     die("❌ Error: Please take at least one photo.");
 }
 
-// Create folder
-$uploadDir = "uploads/" . date("Y_m_d_His") . "_" . $code;
+// Create upload folder
+$folderName = date("Y_m_d_His") . "_" . $code;
+$uploadDir = "uploads/$folderName";
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0777, true);
 }
 
-// Save images
-$savedPaths = [];
-foreach ($images as $index => $dataUrl) {
-    if (preg_match('/^data:image\/png;base64,/', $dataUrl)) {
-        $data = base64_decode(str_replace('data:image/png;base64,', '', $dataUrl));
-        $filePath = "$uploadDir/paper_" . ($index + 1) . ".png";
-        file_put_contents($filePath, $data);
-        $savedPaths[] = $filePath;
+try {
+    // Begin transaction
+    $pdo->beginTransaction();
+
+    // Insert into past_papers
+    $stmt = $pdo->prepare("INSERT INTO past_papers (year, course, title, code, folder_path) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$year, $course, $title, $code, $uploadDir]);
+    $paperId = $pdo->lastInsertId();
+
+    // Insert each image into paper_images
+    $imgStmt = $pdo->prepare("INSERT INTO paper_images (paper_id, filename) VALUES (?, ?)");
+
+    foreach ($images as $index => $dataUrl) {
+        if (preg_match('/^data:image\/png;base64,/', $dataUrl)) {
+            $data = base64_decode(str_replace('data:image/png;base64,', '', $dataUrl));
+            $filename = "paper_" . ($index + 1) . ".png";
+            $filePath = "$uploadDir/$filename";
+            if (file_put_contents($filePath, $data)) {
+                $imgStmt->execute([$paperId, $filename]);
+            }
+        }
     }
-}
 
-// Insert record into DB
-$stmt = $conn->prepare("INSERT INTO pastpapers (year, course, title, code, image_paths, uploaded_at) VALUES (?, ?, ?, ?, ?, NOW())");
-$imagePathsJson = json_encode($savedPaths);
-$stmt->bind_param("sssss", $year, $course, $title, $code, $imagePathsJson);
+    $pdo->commit();
 
-if ($stmt->execute()) {
     echo "<script>alert('✅ Upload successful!'); window.location.href='view_papers.php';</script>";
-} else {
-    echo "❌ Error saving to database: " . $stmt->error;
+} catch (PDOException $e) {
+    $pdo->rollBack();
+    die("❌ Upload failed: " . $e->getMessage());
 }
-
-$stmt->close();
-$conn->close();
 ?>
