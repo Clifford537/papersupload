@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <title>Upload Past Paper</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <style>
     * {
       box-sizing: border-box;
@@ -45,6 +46,11 @@
       border-radius: 5px;
       cursor: pointer;
       margin: 0.25rem;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: #0056b3;
     }
 
     .btn.secondary {
@@ -53,9 +59,9 @@
       display: inline-block;
     }
 
-    .btn.small {
-      font-size: 0.8rem;
-      padding: 0.4rem 0.8rem;
+    .btn.torch-on {
+      background: #FFD700;
+      color: #000;
     }
 
     .form-group {
@@ -76,24 +82,93 @@
     }
 
     .camera-box {
-      position: relative;
-      display: flex;
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      z-index: 1000;
       flex-direction: column;
       align-items: center;
-      margin-bottom: 1rem;
+      justify-content: center;
     }
 
     video {
       width: 100%;
-      border-radius: 8px;
-      margin-bottom: 0.5rem;
+      height: 100%;
+      object-fit: cover;
     }
 
     .camera-controls {
+      position: absolute;
+      bottom: 60px; /* Moved up for better visibility */
       display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+      gap: 1.2rem;
       justify-content: center;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 12px;
+      border-radius: 50px;
+    }
+
+    .camera-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #fff;
+      color: #000;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .camera-btn:hover {
+      transform: scale(1.1);
+      background: #e0e0e0;
+    }
+
+    .camera-btn.snap {
+      width: 70px;
+      height: 70px;
+      background: #ff4444;
+      color: #fff;
+    }
+
+    .camera-btn.torch-on {
+      background: #FFD700;
+      color: #000;
+    }
+
+    .camera-btn.close {
+      background: #6c757d;
+      color: #fff;
+    }
+
+    .camera-preview {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      max-width: 90%;
+      overflow-x: auto;
+      padding: 5px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 5px;
+    }
+
+    .camera-preview img {
+      max-width: 60px;
+      height: auto;
+      border-radius: 3px;
+      cursor: pointer;
     }
 
     .preview {
@@ -127,10 +202,61 @@
       cursor: pointer;
     }
 
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      max-width: 90%;
+      max-height: 90vh;
+      overflow: auto;
+      text-align: center;
+    }
+
+    #cropper-img {
+      max-width: 100%;
+      max-height: 60vh;
+    }
+
+    .modal-controls {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
     @media (max-width: 600px) {
       .camera-controls {
-        flex-direction: column;
-        gap: 0.3rem;
+        bottom: 80px; /* Higher on mobile for accessibility */
+        gap: 1rem;
+        padding: 10px;
+      }
+
+      .camera-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 1.3rem;
+      }
+
+      .camera-btn.snap {
+        width: 60px;
+        height: 60px;
+      }
+
+      .camera-preview img {
+        max-width: 50px;
       }
 
       .btn {
@@ -143,7 +269,7 @@
   <div class="container">
     <header>
       <h1>📚 Past Paper Upload</h1>
-      <a href="view_papers.php" class="btn secondary">View Uploaded Papers</a>
+      <a href="list_papers.php" class="btn secondary">View Uploaded Papers</a>
     </header>
 
     <form id="uploadForm" method="POST" action="upload.php">
@@ -159,20 +285,19 @@
       </div>
 
       <div class="form-group">
-  <label for="course">Course</label>
-  <select name="course" id="course" required>
-    <option value="">Select course</option>
-    <option value="Bachelor of Science in Computer Science">Bachelor of Science in Computer Science</option>
-    <option value="Bachelor of Science in Information Technology">Bachelor of Science in Information Technology</option>
-    <option value="Bachelor of Science in ICT Management">Bachelor of Science in ICT Management</option>
-    <option value="Bachelor of Science in Computer Technology">Bachelor of Science in Computer Technology</option>
-    <option value="Bachelor of Science in Information Systems">Bachelor of Science in Information Systems</option>
-    <option value="Diploma in IT">Diploma in IT</option>
-    <option value="Diploma in Information Technology">Diploma in Information Technology</option>
-    <option value="Diploma in ICT (DICT)">Diploma in ICT (DICT)</option>
-  </select>
-</div>
-
+        <label for="course">Course</label>
+        <select name="course" id="course" required>
+          <option value="">Select course</option>
+          <option value="Bachelor of Science in Computer Science">Bachelor of Science in Computer Science</option>
+          <option value="Bachelor of Science in Information Technology">Bachelor of Science in Information Technology</option>
+          <option value="Bachelor of Science in ICT Management">Bachelor of Science in ICT Management</option>
+          <option value="Bachelor of Science in Computer Technology">Bachelor of Science in Computer Technology</option>
+          <option value="Bachelor of Science in Information Systems">Bachelor of Science in Information Systems</option>
+          <option value="Diploma in IT">Diploma in IT</option>
+          <option value="Diploma in Information Technology">Diploma in Information Technology</option>
+          <option value="Diploma in ICT (DICT)">Diploma in ICT (DICT)</option>
+        </select>
+      </div>
 
       <div class="form-group">
         <label for="title">Title</label>
@@ -184,13 +309,8 @@
         <input type="text" name="code" id="code" required pattern="[A-Za-z0-9]{6}" placeholder="e.g. CSC201" title="Code must be exactly 6 letters or numbers" />
       </div>
 
-      <div class="camera-box">
-        <video id="video" autoplay playsinline></video>
-        <div class="camera-controls">
-          <button type="button" id="use-back" class="btn small">Back Camera</button>
-          <button type="button" id="use-front" class="btn small">Front Camera</button>
-          <button type="button" id="snap" class="btn">📸 Take Photo</button>
-        </div>
+      <div class="form-group">
+        <button type="button" id="open-camera" class="btn">📷 Open Camera</button>
       </div>
 
       <div class="preview" id="preview"></div>
@@ -200,33 +320,132 @@
     </form>
   </div>
 
+  <div class="camera-box" id="camera-box">
+    <video id="video" autoplay playsinline></video>
+    <div class="camera-preview" id="camera-preview"></div>
+    <div class="camera-controls">
+      <button type="button" id="use-back" class="camera-btn" title="Back Camera"><i class="fas fa-camera-rotate"></i></button>
+      <button type="button" id="use-front" class="camera-btn" title="Front Camera"><i class="fas fa-camera"></i></button>
+      <button type="button" id="toggle-torch" class="camera-btn" title="Toggle Torch"><i class="fas fa-lightbulb"></i></button>
+      <button type="button" id="snap" class="camera-btn snap" title="Take Photo"><i class="fas fa-circle"></i></button>
+      <button type="button" id="close-camera" class="camera-btn close" title="Close"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+
+  <div class="modal" id="cropModal">
+    <div class="modal-content">
+      <img id="cropper-img" />
+      <div class="modal-controls">
+        <button type="button" id="crop-btn" class="btn">Crop & Save</button>
+        <button type="button" id="cancel-btn" class="btn secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
   <script>
     const video = document.getElementById('video');
+    const cameraBox = document.getElementById('camera-box');
+    const cameraPreview = document.getElementById('camera-preview');
+    const openCameraBtn = document.getElementById('open-camera');
+    const closeCameraBtn = document.getElementById('close-camera');
     const snap = document.getElementById('snap');
+    const toggleTorch = document.getElementById('toggle-torch');
     const preview = document.getElementById('preview');
     const photos = document.getElementById('photos');
+    const cropModal = document.getElementById('cropModal');
+    const cropperImg = document.getElementById('cropper-img');
+    const cropBtn = document.getElementById('crop-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const uploadForm = document.getElementById('uploadForm');
     let stream = null;
     let photoIndex = 0;
+    let cropper = null;
+    let currentDataURL = null;
+    let torchOn = false;
+    let photosArray = [];
 
-    async function startCamera(facingMode = 'environment') {
+    // Detect if the device is mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    async function startCamera(facingMode = isMobile ? 'environment' : 'user') {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: facingMode } }
+          video: { 
+            facingMode: { exact: facingMode }, 
+            width: { ideal: 1920 }, 
+            height: { ideal: 1080 }
+          }
         });
         video.srcObject = stream;
+        cameraBox.style.display = 'flex';
+
+        // Check for torch support
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities();
+        toggleTorch.style.display = capabilities.torch ? 'inline-block' : 'none';
       } catch (err) {
         alert('Could not access the camera: ' + err.message);
       }
     }
 
-    startCamera();
+    async function toggleTorchLight() {
+      const track = stream?.getVideoTracks()[0];
+      if (!track) return;
+
+      try {
+        await track.applyConstraints({ advanced: [{ torch: !torchOn }] });
+        torchOn = !torchOn;
+        toggleTorch.classList.toggle('torch-on', torchOn);
+        toggleTorch.innerHTML = torchOn ? '<i class="fas fa-lightbulb"></i>' : '<i class="fas fa-lightbulb"></i>';
+      } catch (err) {
+        console.error('Torch not supported or error:', err);
+      }
+    }
+
+    function updateCameraPreview() {
+      cameraPreview.innerHTML = '';
+      photosArray.forEach((photo, index) => {
+        const img = document.createElement('img');
+        img.src = photo.dataURL;
+        img.dataset.index = index;
+        img.addEventListener('click', () => {
+          currentDataURL = photo.dataURL;
+          cropperImg.src = currentDataURL;
+          cropModal.style.display = 'flex';
+          cameraBox.style.display = 'none';
+          if (cropper) cropper.destroy();
+          cropper = new Cropper(cropperImg, {
+            aspectRatio: NaN,
+            viewMode: 1,
+            autoCropArea: 0.8,
+            responsive: true,
+          });
+          photoIndex = index;
+        });
+        cameraPreview.appendChild(img);
+      });
+    }
+
+    openCameraBtn.addEventListener('click', () => {
+      startCamera();
+    });
+
+    closeCameraBtn.addEventListener('click', () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+      cameraBox.style.display = 'none';
+    });
 
     document.getElementById('use-back').addEventListener('click', () => startCamera('environment'));
     document.getElementById('use-front').addEventListener('click', () => startCamera('user'));
+    toggleTorch.addEventListener('click', toggleTorchLight);
 
     snap.addEventListener('click', () => {
       const canvas = document.createElement('canvas');
@@ -234,43 +453,96 @@
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0);
 
-      const dataURL = canvas.toDataURL('image/png');
-      const block = document.createElement('div');
-      block.className = 'photo-block';
-      block.dataset.index = photoIndex;
+      currentDataURL = canvas.toDataURL('image/jpeg', 0.95);
 
-      const img = document.createElement('img');
-      img.src = dataURL;
+      cropperImg.src = currentDataURL;
+      cropModal.style.display = 'flex';
+      cameraBox.style.display = 'none';
 
-      const btn = document.createElement('button');
-      btn.textContent = '×';
-      btn.className = 'remove-btn';
-      btn.type = 'button';
-      btn.onclick = () => {
-        photos.querySelector(`[data-index="${block.dataset.index}"]`)?.remove();
-        block.remove();
-      };
-
-      block.appendChild(img);
-      block.appendChild(btn);
-      preview.appendChild(block);
-
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'images[]';
-      input.value = dataURL;
-      input.dataset.index = photoIndex;
-      photos.appendChild(input);
-
-      photoIndex++;
+      if (cropper) cropper.destroy();
+      cropper = new Cropper(cropperImg, {
+        aspectRatio: NaN,
+        viewMode: 1,
+        autoCropArea: 0.8,
+        responsive: true,
+      });
     });
 
-    document.getElementById('uploadForm').addEventListener('submit', function (e) {
+    cropBtn.addEventListener('click', () => {
+      const croppedCanvas = cropper.getCroppedCanvas();
+      const croppedDataURL = croppedCanvas.toDataURL('image/jpeg', 0.95);
+
+      photosArray[photoIndex] = { dataURL: croppedDataURL };
+      updateCameraPreview();
+
+      preview.innerHTML = '';
+      photos.innerHTML = '';
+      photosArray.forEach((photo, index) => {
+        const block = document.createElement('div');
+        block.className = 'photo-block';
+        block.dataset.index = index;
+
+        const img = document.createElement('img');
+        img.src = photo.dataURL;
+
+        const btn = document.createElement('button');
+        btn.textContent = '×';
+        btn.className = 'remove-btn';
+        btn.type = 'button';
+        btn.onclick = () => {
+          photosArray.splice(index, 1);
+          photos.querySelector(`[data-index="${index}"]`)?.remove();
+          block.remove();
+          updateCameraPreview();
+        };
+
+        block.appendChild(img);
+        block.appendChild(btn);
+        preview.appendChild(block);
+
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'images[]';
+        input.value = photo.dataURL;
+        input.dataset.index = index;
+        photos.appendChild(input);
+      });
+
+      photoIndex = photosArray.length;
+      cropModal.style.display = 'none';
+      cropper.destroy();
+      cameraBox.style.display = 'flex';
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      cropModal.style.display = 'none';
+      cropper.destroy();
+      cameraBox.style.display = 'flex';
+    });
+
+    uploadForm.addEventListener('submit', function (e) {
+      e.preventDefault();
       const imageInputs = document.querySelectorAll('input[name="images[]"]');
       if (imageInputs.length === 0) {
         alert('Please take at least one photo before uploading.');
-        e.preventDefault();
+        return;
       }
+
+      const formData = new FormData(uploadForm);
+      fetch('upload.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+        if (data.success) {
+          window.location.href = 'list_papers.php';
+        }
+      })
+      .catch(error => {
+        alert('An error occurred: ' + error.message);
+      });
     });
   </script>
 </body>
